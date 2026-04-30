@@ -1,5 +1,3 @@
-# descuentos-app
-App facil ahorro
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -84,7 +82,6 @@ input:focus{border-color:#888;}
 .section-title-sm{font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px;}
 .empty-state{text-align:center;padding:2rem 1rem;color:#aaa;font-size:13px;}
 .sync-bar{display:flex;align-items:center;justify-content:space-between;background:#f7f7f7;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#888;}
-.sync-bar span{display:flex;align-items:center;gap:5px;}
 .btn-sync{padding:4px 10px;font-size:12px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:#fff;color:#111;}
 .btn-sync:disabled{color:#bbb;cursor:default;}
 .io-card{background:#f7f7f7;border:1px solid #e0e0e0;border-radius:12px;padding:16px;margin-bottom:12px;}
@@ -95,15 +92,17 @@ input:focus{border-color:#888;}
 .io-btn{width:100%;padding:10px;font-size:13px;font-weight:500;cursor:pointer;border-radius:8px;border:1px solid #ddd;background:#fff;color:#111;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;}
 .io-btn:last-child{margin-bottom:0;}
 .io-btn.primary{background:#1D6F42;color:#fff;border-color:#1D6F42;}
-.io-btn.danger{color:#A32D2D;border-color:#E24B4A;background:#fff;}
+.io-btn.danger{color:#A32D2D;border-color:#E24B4A;}
 .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end;justify-content:center;}
 .modal-backdrop.open{display:flex;}
 .modal{background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:420px;max-height:85vh;overflow-y:auto;}
 .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
 .modal-title{font-size:15px;font-weight:600;color:#111;}
 .modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#888;}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid #ddd;border-top-color:#888;border-radius:50%;animation:spin .7s linear infinite;}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid #ddd;border-top-color:#555;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
 @keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}
 </style>
 </head>
 <body>
@@ -117,8 +116,8 @@ input:focus{border-color:#888;}
 
   <div id="screen-hoy" class="screen">
     <div class="sync-bar">
-      <span id="syncStatus">📋 Cargando datos...</span>
-      <button class="btn-sync" onclick="loadFromSheets()" id="btnSync">🔄 Actualizar</button>
+      <span id="syncStatus">📋 Cargando...</span>
+      <button class="btn-sync" id="btnSync" onclick="loadFromSheets()">🔄 Actualizar</button>
     </div>
     <div class="day-selector" id="daySelector"></div>
     <div class="rubro-filter" id="rubroFilter"></div>
@@ -154,13 +153,13 @@ input:focus{border-color:#888;}
   <div id="screen-datos" class="screen" style="display:none;">
     <div class="io-card">
       <div class="io-card-header"><span class="io-icon">☁️</span><span class="io-title">Google Sheets</span></div>
-      <div class="io-desc">Los datos se sincronizan automáticamente con tu hoja de Google. Cualquier cambio que hagas vos o tu esposa se refleja al actualizar.</div>
-      <button class="io-btn primary" onclick="saveToSheets()">⬆️ Guardar en Google Sheets</button>
+      <div class="io-desc">Los datos se sincronizan con tu hoja de Google. Guardá después de cada cambio para que tu esposa lo vea actualizado.</div>
+      <button class="io-btn primary" id="btnGuardar" onclick="saveToSheets()">⬆️ Guardar en Google Sheets</button>
       <button class="io-btn" onclick="loadFromSheets()">⬇️ Cargar desde Google Sheets</button>
     </div>
     <div class="io-card">
       <div class="io-card-header"><span class="io-icon">📗</span><span class="io-title">Exportar a Excel</span></div>
-      <div class="io-desc">Descargá una copia local de tu lista en formato .xlsx como respaldo.</div>
+      <div class="io-desc">Descargá una copia local como respaldo en formato .xlsx.</div>
       <button class="io-btn" onclick="exportXLS()">⬇️ Descargar .xlsx</button>
     </div>
     <div class="io-card">
@@ -184,8 +183,10 @@ input:focus{border-color:#888;}
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxNkZ5RRnVjZPq8_vJaOmfxxYKNalj4JY6z3n3iAqdpCZ2k35d6tkxVH2AE9cwIYNU/exec';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbz0wcvN0TAWmuKgtXLOnIrkkLemn3M778efYDzr7e6r0JM6vtRWZ_zIRg9kMhL22emc/exec';
 
 const DAYS=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const DAYS_FULL=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
@@ -208,73 +209,98 @@ let fDays=[],fRubro='',fPeriod='',editingId=null,registrandoId=null;
 const R=id=>RUBROS.find(r=>r.id===id);
 const $=id=>document.getElementById(id);
 
-// ── GOOGLE SHEETS SYNC ──
+function showToast(msg){
+  const t=$('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── GOOGLE SHEETS ──
 async function loadFromSheets(){
   setSyncStatus('⏳ Cargando...', true);
   try{
-    const res = await fetch(SHEETS_URL + '?t=' + Date.now());
-    const rows = await res.json();
-    if(!Array.isArray(rows)) throw new Error('Respuesta inválida');
+    // usamos no-cors workaround via script tag para evitar CORS
+    const url = SHEETS_URL + '?t=' + Date.now();
+    const res = await fetch(url, {redirect:'follow'});
+    const text = await res.text();
+    // a veces Google devuelve HTML de redirect, intentamos parsear
+    let rows;
+    try { rows = JSON.parse(text); }
+    catch(e){ throw new Error('Respuesta no es JSON. Verificá la implementación.'); }
+    if(!Array.isArray(rows)) throw new Error('Formato inesperado');
     discounts = rows
       .filter(r => r['Comercio'])
-      .map((r, i) => {
-        const diasStr = (r['Días']||'').toString();
-        const days = diasStr.split(',').map(s=>DAYS.indexOf(s.trim())).filter(x=>x>=0);
-        return {
-          id: i+1,
-          rubro: RUBRO_IDS[r['Rubro']] || 'super',
-          name: String(r['Comercio']||''),
-          bank: String(r['Banco / Tarjeta']||''),
-          days: days.length ? days : [0],
-          pct: Number(r['Descuento (%)']),
-          minBuy: Number(r['Compra mínima ($)']),
-          maxReturn: Number(r['Tope por compra ($)']),
-          limitAmount: Number(r['Límite período ($)']),
-          period: (r['Período']||'mensual').toString().toLowerCase()
+      .map((r,i)=>{
+        const diasStr=(r['Días']||'').toString();
+        const days=diasStr.split(',').map(s=>DAYS.indexOf(s.trim())).filter(x=>x>=0);
+        return{
+          id:i+1,
+          rubro:RUBRO_IDS[r['Rubro']]||'super',
+          name:String(r['Comercio']||''),
+          bank:String(r['Banco / Tarjeta']||''),
+          days:days.length?days:[0],
+          pct:Number(r['Descuento (%)']),
+          minBuy:Number(r['Compra mínima ($)']),
+          maxReturn:Number(r['Tope por compra ($)']),
+          limitAmount:Number(r['Límite período ($)']),
+          period:(r['Período']||'mensual').toString().toLowerCase()
         };
       });
-    nextId = discounts.length + 1;
-    const now = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
-    setSyncStatus('✅ Actualizado a las ' + now, false);
-    renderDiscounts();
-    renderAllList();
-  } catch(e) {
-    setSyncStatus('❌ Error al conectar con Sheets', false);
+    nextId=discounts.length+1;
+    const now=new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    setSyncStatus('✅ Actualizado '+now, false);
+    renderDiscounts(); renderAllList();
+    showToast('✅ Datos cargados correctamente');
+  }catch(e){
+    setSyncStatus('❌ Error: '+e.message, false);
+    showToast('❌ '+e.message);
   }
 }
 
 async function saveToSheets(){
-  setSyncStatus('⏳ Guardando...', true);
+  if(!discounts.length){showToast('No hay descuentos para guardar');return;}
+  const btn=$('btnGuardar');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span> Guardando...';
   try{
-    const rows = discounts.map(d => [
+    const rows=discounts.map(d=>[
       RUBRO_LABELS[d.rubro]||d.rubro,
       d.name, d.bank,
       d.days.map(i=>DAYS[i]).join(', '),
-      d.pct, d.minBuy, d.maxReturn, d.limitAmount, d.period
+      d.pct, d.minBuy, d.maxReturn, d.limitAmount||0, d.period
     ]);
-    await fetch(SHEETS_URL, {
-      method:'POST',
-      body: JSON.stringify({ action:'overwrite', rows }),
-      headers:{'Content-Type':'application/json'}
-    });
-    const now = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
-    setSyncStatus('✅ Guardado a las ' + now, false);
-  } catch(e) {
+    // Enviamos via GET con los datos codificados en la URL
+    const dataStr = encodeURIComponent(JSON.stringify(rows));
+    const url = SHEETS_URL + '?action=save&data=' + dataStr;
+    const res = await fetch(url, {redirect:'follow'});
+    const text = await res.text();
+    let result;
+    try { result = JSON.parse(text); } catch(e){ result = {ok: text.includes('ok')}; }
+    if(result.ok){
+      const now=new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+      setSyncStatus('✅ Guardado '+now, false);
+      showToast('✅ Guardado en Google Sheets');
+    } else {
+      throw new Error(result.error||'Respuesta inesperada');
+    }
+  }catch(e){
+    showToast('❌ Error al guardar: '+e.message);
     setSyncStatus('❌ Error al guardar', false);
   }
+  btn.disabled=false;
+  btn.innerHTML='⬆️ Guardar en Google Sheets';
 }
 
-function setSyncStatus(msg, loading){
-  $('syncStatus').innerHTML = loading ? `<span class="spinner"></span> ${msg}` : msg;
-  $('btnSync').disabled = loading;
+function setSyncStatus(msg,loading){
+  $('syncStatus').innerHTML=loading?`<span class="spinner"></span> ${msg}`:msg;
+  $('btnSync').disabled=loading;
 }
 
 // ── TABS ──
 function showTab(tab){
   ['hoy','cargar','lista','datos'].forEach(t=>$('screen-'+t).style.display=t===tab?'block':'none');
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['hoy','cargar','lista','datos'][i]===tab));
-  if(tab==='hoy') renderAll();
-  if(tab==='lista') renderAllList();
+  if(tab==='hoy')renderAll();
+  if(tab==='lista')renderAllList();
   if(tab==='cargar'){resetForm();buildCargarForm();}
 }
 
@@ -292,7 +318,10 @@ function selectDay(i){selectedDay=i;renderDaySelector();renderDiscounts();}
 
 function renderDiscounts(){
   const el=$('discountList');
-  if(!discounts.length){el.innerHTML=`<div class="empty-state">Sin descuentos cargados.<br>Usá la pestaña <strong>Datos → Cargar desde Sheets</strong></div>`;return;}
+  if(!discounts.length){
+    el.innerHTML=`<div class="empty-state">Sin descuentos cargados.<br><br><button class="btn-sync" onclick="loadFromSheets()">🔄 Cargar desde Sheets</button></div>`;
+    return;
+  }
   let list=discounts.filter(d=>d.days.includes(selectedDay));
   if(activeRubro!=='all')list=list.filter(d=>d.rubro===activeRubro);
   if(!list.length){el.innerHTML=`<div class="empty-state">Sin descuentos para el ${DAYS_FULL[selectedDay]}</div>`;return;}
@@ -379,6 +408,7 @@ function confirmarCompra(){
   const final=Math.min(cap,restante);
   purchases.push({id:nextPurchaseId++,discountId:d.id,fecha,monto,reintegro:final});
   closeModal('modalRegistrar');renderDiscounts();
+  showToast('✅ Compra registrada');
 }
 function deletePurchase(pid){purchases=purchases.filter(p=>p.id!==pid);renderDiscounts();}
 function closeModal(id){$(id).classList.remove('open');}
@@ -429,12 +459,12 @@ function submitForm(){
   if(editingId!==null){
     const idx=discounts.findIndex(x=>x.id===editingId);
     if(idx!==-1)discounts[idx]={...obj,id:editingId};
-    msg.style.color='#27500A';msg.textContent='✓ Actualizado. Guardá en Sheets para sincronizar.';
+    msg.style.color='#27500A';msg.textContent='✓ Editado. Ir a Datos → Guardar para sincronizar.';
   } else {
     discounts.push({...obj,id:nextId++});
-    msg.style.color='#27500A';msg.textContent='✓ Agregado. Guardá en Sheets para sincronizar.';
+    msg.style.color='#27500A';msg.textContent='✓ Agregado. Ir a Datos → Guardar para sincronizar.';
   }
-  setTimeout(()=>{resetForm();buildCargarForm();},2000);
+  setTimeout(()=>{resetForm();buildCargarForm();},2500);
 }
 
 // ── LISTA ──
@@ -460,17 +490,12 @@ function deleteDiscount(id){
   discounts=discounts.filter(d=>d.id!==id);
   purchases=purchases.filter(p=>p.discountId!==id);
   renderAllList();
+  showToast('Descuento eliminado. Guardá en Sheets para sincronizar.');
 }
 
 // ── EXPORT XLS ──
 function exportXLS(){
-  const rows=discounts.map(d=>({
-    'Rubro':RUBRO_LABELS[d.rubro]||d.rubro,
-    'Comercio':d.name,'Banco / Tarjeta':d.bank,
-    'Días':d.days.map(i=>DAYS[i]).join(', '),
-    'Descuento (%)':d.pct,'Compra mínima ($)':d.minBuy,
-    'Tope por compra ($)':d.maxReturn,'Límite período ($)':d.limitAmount||0,'Período':d.period
-  }));
+  const rows=discounts.map(d=>({'Rubro':RUBRO_LABELS[d.rubro]||d.rubro,'Comercio':d.name,'Banco / Tarjeta':d.bank,'Días':d.days.map(i=>DAYS[i]).join(', '),'Descuento (%)':d.pct,'Compra mínima ($)':d.minBuy,'Tope por compra ($)':d.maxReturn,'Límite período ($)':d.limitAmount||0,'Período':d.period}));
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.json_to_sheet(rows);
   ws['!cols']=[{wch:14},{wch:18},{wch:18},{wch:22},{wch:13},{wch:16},{wch:16},{wch:16},{wch:10}];
@@ -482,7 +507,7 @@ function clearAll(){
   if(!confirm('¿Borrar datos locales de esta sesión?'))return;
   discounts=[];purchases=[];nextId=1;nextPurchaseId=1;
   renderDiscounts();renderAllList();
-  setSyncStatus('🗑️ Datos locales borrados',false);
+  setSyncStatus('🗑️ Datos borrados',false);
 }
 
 // ── INIT ──

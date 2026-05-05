@@ -17,14 +17,15 @@ const BRAND_LOGOS = {
   'jumbo':      { domain: 'jumbo.com.ar',      colors: ['#00873C','#43a047'] },
   'carrefour':  { domain: 'carrefour.com.ar',  colors: ['#1746A2','#1e88e5'] },
   'dia':        { domain: 'diaonline.supermercadosdia.com.ar', colors: ['#E31E24','#ef5350'] },
-  'disco':      { domain: 'disco.com.ar',      colors: ['#8B2F8F','#ab47bc'] },
-  'vea':        { domain: 'vea.com.ar',        colors: ['#F26522','#ff7043'] },
-  'coto':       { domain: 'cotodigital3.com.ar', colors: ['#D50000','#e53935'] },
-  'diarco':     { domain: 'diarco.com.ar',     colors: ['#E8830C','#ffa726'] },
+  'disco':      { domain: 'disco.com.ar',      colors: ['#8B2F8F','#ab47bc'], local: 'DISCO VEA.png' },
+  'vea':        { domain: 'vea.com.ar',        colors: ['#F26522','#ff7043'], local: 'DISCO VEA.png' },
+  'coto':       { domain: 'cotodigital3.com.ar', colors: ['#D50000','#e53935'], local: 'COTO.png' },
+  'diarco':     { domain: 'diarco.com.ar',     colors: ['#E8830C','#ffa726'], local: 'DIARCO.png' },
   'farmacity':  { domain: 'farmacity.com',     colors: ['#00A551','#66bb6a'] },
-  'havanna':    { domain: 'havanna.com.ar',    colors: ['#6D3A1E','#8d6e63'] },
+  'havanna':    { domain: 'havanna.com.ar',    colors: ['#6D3A1E','#8d6e63'], local: 'HAVANNA.png' },
   'freddo':     { domain: 'freddo.com.ar',     colors: ['#00B4E6','#29b6f6'] },
   'vitalcer':   { domain: 'vitalcer.com',      colors: ['#0055A5','#42a5f5'] },
+  'desayunos':  { domain: 'havanna.com.ar',    colors: ['#6D3A1E','#8d6e63'], local: 'DESAYUNOS.png' },
   'starbucks':  { domain: 'starbucks.com',     colors: ['#00704A','#2e7d32'] },
   'mcdonald':   { domain: 'mcdonalds.com.ar',  colors: ['#FFC72C','#f9a825'] },
   'burger':     { domain: 'burgerking.com.ar', colors: ['#D62300','#e65100'] },
@@ -55,13 +56,15 @@ function brandLogoHTML(name, rubro, size) {
   const initial = name.charAt(0).toUpperCase();
   const colors = brand ? brand.colors : (RUBRO_COLORS[rubro] || ['#6b7280','#9ca3af']);
 
-  if (brand) {
-    const url = `https://www.google.com/s2/favicons?domain=${brand.domain}&sz=64`;
-    const cls = sz === 44 ? 'brand-logo' : 'list-logo';
-    const initCls = sz === 44 ? 'brand-initials' : 'list-initials';
-    return `<img src="${url}" class="${cls}" style="width:${sz}px;height:${sz}px;border-radius:${rad}" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${initCls}" style="display:none;width:${sz}px;height:${sz}px;border-radius:${rad};background:linear-gradient(135deg,${colors[0]},${colors[1]})">${initial}</div>`;
-  }
+  const cls = sz === 44 ? 'brand-logo' : 'list-logo';
   const initCls = sz === 44 ? 'brand-initials' : 'list-initials';
+
+  if (brand) {
+    let url = `https://www.google.com/s2/favicons?domain=${brand.domain}&sz=64`;
+    if (brand.local) url = brand.local; // Use local image if specified
+
+    return `<img src="${url}" class="${cls}" style="width:${sz}px;height:${sz}px;border-radius:${rad};object-fit:contain" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${initCls}" style="display:none;width:${sz}px;height:${sz}px;border-radius:${rad};background:linear-gradient(135deg,${colors[0]},${colors[1]})">${initial}</div>`;
+  }
   return `<div class="${initCls}" style="width:${sz}px;height:${sz}px;border-radius:${rad};background:linear-gradient(135deg,${colors[0]},${colors[1]})">${initial}</div>`;
 }
 

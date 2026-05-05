@@ -61,7 +61,7 @@ function brandLogoHTML(name, rubro, size) {
 
   if (brand) {
     let url = `https://www.google.com/s2/favicons?domain=${brand.domain}&sz=64`;
-    if (brand.local) url = brand.local; // Use local image if specified
+    if (brand.local) url = encodeURI(brand.local); // Use encoded local filename
 
     return `<img src="${url}" class="${cls}" style="width:${sz}px;height:${sz}px;border-radius:${rad};object-fit:contain" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${initCls}" style="display:none;width:${sz}px;height:${sz}px;border-radius:${rad};background:linear-gradient(135deg,${colors[0]},${colors[1]})">${initial}</div>`;
   }
@@ -98,21 +98,29 @@ function showToast(msg) {
 }
 
 // ── AUTOGUARDADO ──
-function markChanged() {
-  pendingChanges=true;
+function markChanged(immediate = false) {
+  pendingChanges = true;
+  if (immediate) {
+    saveToSheets(true);
+    return;
+  }
+  
   $('autosaveBar').style.display='flex';
   if(countdownInterval) clearInterval(countdownInterval);
   if(autoSaveTimer) clearTimeout(autoSaveTimer);
-  countdown=60;
-  $('autoCountdown').textContent=countdown;
-  countdownInterval=setInterval(()=>{
+  
+  countdown = 3; // Reducido a 3 segundos para que se sienta "auto"
+  $('autoCountdown').textContent = countdown;
+  
+  countdownInterval = setInterval(() => {
     countdown--;
-    $('autoCountdown').textContent=countdown;
-    if(countdown<=0) clearInterval(countdownInterval);
-  },1000);
-  autoSaveTimer=setTimeout(async()=>{
+    $('autoCountdown').textContent = countdown;
+    if(countdown <= 0) clearInterval(countdownInterval);
+  }, 1000);
+
+  autoSaveTimer = setTimeout(async () => {
     if(pendingChanges) await saveToSheets(true);
-  },60000);
+  }, 3000);
 }
 
 // ── GOOGLE SHEETS ──
@@ -359,7 +367,7 @@ function submitForm() {
     discounts.push({...obj, id:nextId++});
     msg.style.color='var(--super)'; msg.textContent='✓ Agregado correctamente.';
   }
-  markChanged();
+  markChanged(true); // Guardado inmediato al enviar el formulario
   setTimeout(()=>{ resetForm(); buildCargarForm(); },2000);
 }
 

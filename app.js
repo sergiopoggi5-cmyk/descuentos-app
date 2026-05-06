@@ -296,9 +296,50 @@ function cardHTML(d, idx) {
 function updateConsumed(id, val) {
   const idx = discounts.findIndex(x => x.id===id);
   if(idx===-1) return;
-  discounts[idx].consumido = Number(val) || 0;
+  const d = discounts[idx];
+  d.consumido = Number(val) || 0;
+  
+  // Actualizar UI inmediatamente sin re-renderizar todo
+  const cards = document.querySelectorAll('.discount-card');
+  cards.forEach(card => {
+    // Buscamos la tarjeta por el nombre y banco (ya que el ID no está en el DOM directo)
+    const title = card.querySelector('.card-title').textContent;
+    const bank = card.querySelector('.card-bank').textContent;
+    if (title === d.name && bank === d.bank) {
+      const consumido = d.consumido;
+      const restante = Math.max(0, (d.limitAmount||0) - consumido);
+      const pct_usado = d.limitAmount ? Math.min(100, Math.round(consumido/d.limitAmount*100)) : 0;
+      const fillColor = pct_usado>=100 ? 'var(--farmacia)' : pct_usado>=75 ? 'var(--cafeteria)' : 'var(--super)';
+      
+      const fill = card.querySelector('.progress-bar-fill');
+      const labels = card.querySelectorAll('.progress-header span strong');
+      const restaSpan = card.querySelector('.progress-header span:last-child');
+      
+      if (fill) {
+        fill.style.width = pct_usado + '%';
+        fill.style.background = fillColor;
+      }
+      if (labels.length >= 2) {
+        labels[0].textContent = '$' + consumido.toLocaleString('es-AR');
+        labels[1].textContent = '$' + restante.toLocaleString('es-AR');
+      }
+      if (restaSpan) {
+        restaSpan.style.color = restante === 0 ? 'var(--farmacia)' : 'var(--super)';
+      }
+    }
+  });
+
   markChanged();
 }
+
+// Agregar soporte para Enter en los inputs de consumido
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.classList.contains('consumido-input')) {
+    markChanged(true); // Guardado inmediato al presionar Enter
+    e.target.blur();
+    showToast('🚀 Guardado inmediato');
+  }
+});
 
 // ── EDITAR ──
 function editDiscount(id) {
@@ -398,8 +439,9 @@ function renderAllList() {
 function deleteDiscount(id) {
   if(!confirm('¿Eliminar este descuento?')) return;
   discounts=discounts.filter(d=>d.id!==id);
-  renderAllList(); markChanged();
-  showToast('Eliminado. Se guardará automáticamente.');
+  renderAll(); renderAllList(); // Actualizar ambas vistas
+  markChanged(true); // Guardado inmediato
+  showToast('Eliminado. Sincronizado con Sheets.');
 }
 
 // ── EXPORT ──
